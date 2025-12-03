@@ -1,12 +1,15 @@
 from PyQt6 import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
+import ctypes
 import markdown
-import sys
+import sys,os
 import fitz
 import render
 import summarise
 
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("PediFile.App")
 
 class Window(QMainWindow):
     def __init__(self):
@@ -16,8 +19,10 @@ class Window(QMainWindow):
         self.setCentralWidget(main)
         mainlayout = QVBoxLayout(main)
         self.page=0
-        self.zoom=1.0
+        self.zoom=1.5
         
+        icpath = self.resource_path("assets\PediFile_logo.png")
+        self.setWindowIcon(QIcon(icpath))
         
         #pdf render area
         mainpdf = QWidget()
@@ -40,7 +45,7 @@ class Window(QMainWindow):
         self.togbtn.setCheckable(True)
         self.togbtn.toggled.connect(self.summary)
         lay.addWidget(self.togbtn,alignment=Qt.AlignmentFlag.AlignRight)
-
+        
         self.sumFrame = QFrame()
         self.sumFrame.setFrameShape(QFrame.Shape.StyledPanel)
         sumlay = QVBoxLayout(self.sumFrame)
@@ -189,6 +194,11 @@ class Window(QMainWindow):
         if state==False:
             self.split.setSizes([1,0])
             self.togbtn.setText(">>")
+
+            
+    def resource_path(self, relative_path):
+        base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(base_path, relative_path)
 
 
 

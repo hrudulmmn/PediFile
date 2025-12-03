@@ -1,5 +1,7 @@
 import cv2
 import mediapipe as mp
+import math 
+
 capture = cv2.VideoCapture(0)
 hands = mp.solutions.hands
 draw = mp.solutions.drawing_utils
@@ -18,7 +20,6 @@ while True:
     rgb = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
 
     result = hand.process(rgb)
-
     if result.multi_hand_landmarks:
         for landmarks in result.multi_hand_landmarks:
             draw.draw_landmarks(
@@ -26,13 +27,43 @@ while True:
                 landmarks,
                 hands.HAND_CONNECTIONS
             )
+            norm = []
+            wristx = landmarks.landmark[0].x
+            wristy = landmarks.landmark[0].y
+            for point in landmarks.landmark:
+                
+                x = point.x - wristx
+                y = point.y - wristy
+                norm.append((x,y))
+            def fingUp(norm,tip,pip):
+                return norm[tip][1]<norm[pip][1]
+            thumb = fingUp(norm,4,2)
+            index = fingUp(norm,8,6)
+            middle = fingUp(norm,12,10)
+            ring = fingUp(norm,16,14)
+            smol = fingUp(norm,20,18)
+
+            if(middle and index and thumb and not ring and not smol):
+                print("TAKT")
+
+            direction = middle and index and thumb and ring and smol
+            if(direction and norm[12][0]<-0.15):
+                print("prev")
+            elif(direction and norm[12][0]>0.15):
+                print("next")
+
+            #zoom
+            if(index and thumb and not middle and not ring and not smol):
+                a = norm[4]
+                b = norm[8]
+                dist = math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2)
+                print(dist)
     cv2.imshow("Camera",frame)
     if cv2.waitKey(1) & 0xFF==ord('q'):
         break
     
-    for point in result.multi_hand_landmarks:
-        point.x = point.x - result.multi_hand_landmarks[0].x
-        point.y = point.y - result.multi_hand_landmarks[0].y
+
+
 capture.release()
 cv2.destroyAllWindows()
 hand.close()

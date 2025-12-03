@@ -1,7 +1,8 @@
 from groq import Groq
+import os
 import render
 
-key = 'api'
+key = os.environ.get("GroqApi")
 client = Groq(api_key=key)
 model = "meta-llama/llama-4-scout-17b-16e-instruct"
 
