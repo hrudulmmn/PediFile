@@ -1,6 +1,6 @@
 from PyQt6 import *
 from PyQt6.QtWidgets import *
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt,QTimer
 from PyQt6.QtGui import QIcon
 import ctypes
 import markdown
@@ -8,6 +8,7 @@ import sys,os
 import fitz
 import render
 import summarise
+from gesture import GestureMan
 
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("PediFile.App")
 
@@ -20,6 +21,7 @@ class Window(QMainWindow):
         mainlayout = QVBoxLayout(main)
         self.page=0
         self.zoom=1.2
+        self.control = GestureMan()
 
         icpath = self.resource_path("assets\PediFile_logo.png")
         self.setWindowIcon(QIcon(icpath))
@@ -111,16 +113,20 @@ class Window(QMainWindow):
         navbar.addWidget(outzoom)
         outzoom.clicked.connect(self.minimise)
 
-        mode = QPushButton("")
-        mode.setCheckable(True)
-        mode.setIcon(QIcon("assets/mouse.svg"))
-        mode.setProperty("class","tools")
-        navbar.addWidget(mode,Qt.AlignmentFlag.AlignRight)
+        self.mode = QPushButton("")
+        self.mode.setCheckable(True)
+        self.mode.setIcon(QIcon("assets/mouse.svg"))
+        self.mode.setProperty("class","tools")
+        self.mode.toggled.connect(self.startGest)
+        navbar.addWidget(self.mode,Qt.AlignmentFlag.AlignRight)
 
         self.scrll.verticalScrollBar().valueChanged.connect(self.pageScroll)
         navbar.addStretch()
         mainlayout.addWidget(nav)
         mainlayout.addWidget(self.split)
+
+        self.control.man.nextPage.connect(self.tonxt)
+        self.control.man.prevPage.connect(self.toprev)
     
     def opnpdf(self):
         filepath,_ = QFileDialog.getOpenFileName(self,"Select File","","PDF Files (*.pdf);; All Files(*)")
@@ -181,8 +187,6 @@ class Window(QMainWindow):
         bar.blockSignals(False)
         self.split.setSizes([1,0])
         self.togbtn.setIcon(QIcon("assets/sum.svg"))
-        self.togbtn.setCheckable(False)
-        self.togbtn.setCheckable(True)
         self.toggle()
         
 
@@ -194,6 +198,7 @@ class Window(QMainWindow):
         self.pdf.setPixmap(pixmp)
         self.pdf.setFixedSize(pixmp.size())
         self.toggle()
+        
     
     def minimise(self):
         if not self.doc:
@@ -203,6 +208,7 @@ class Window(QMainWindow):
         self.pdf.setPixmap(pixmp)
         self.pdf.setFixedSize(pixmp.size())
         self.toggle()
+        
 
     def pageScroll(self,value):
         if not self.doc:
@@ -241,7 +247,7 @@ class Window(QMainWindow):
         if self.pdf.height()==0 or self.pdf.width()==0:
             return
         rect=self.pdf.geometry()
-        x = rect.right()+8
+        x = rect.right()
         y = rect.top() + rect.height()//2-self.togbtn.height()//2
         self.togbtn.move(x,y)
 
@@ -249,4 +255,11 @@ class Window(QMainWindow):
         super().resizeEvent(event)
         self.toggle()
 
+    def startGest(self,state):
+        if state == True:
+            self.mode.setIcon(QIcon("assets/hand.svg"))
+            self.control.start()
+        if state == False:
+            self.control.stop()
+            self.mode.setIcon(QIcon("assets/mouse.svg"))
 
