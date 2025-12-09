@@ -7,14 +7,15 @@ import time
 class Gesture(QObject):
     nextPage = pyqtSignal()
     prevPage = pyqtSignal()
-    takt = pyqtSignal()
+    takt = pyqtSignal(bool)
     zoom = pyqtSignal(int)
     def __init__(self, parent =None):
         super().__init__(parent)
         self.hands = mp.solutions.hands
         self.draw = mp.solutions.drawing_utils
         self.running =True
-        self.enabled = True
+        self.enabled = False
+        self.active = False
 
         self.befNextActive = False
         self.befPrevActive = False
@@ -24,6 +25,7 @@ class Gesture(QObject):
         self.prevTime = 0.0
         self.taktTime = 0.0
         self.cooldown = 700
+        self.taktcooldown = 1000
         self.lastpinch=0
 
 
@@ -40,6 +42,7 @@ class Gesture(QObject):
             while self.running:
                 ret,frame = capture.read()
                 if not ret:
+                    self.active = False
                     break
 
                 self.time = time.time()*1000
@@ -72,11 +75,17 @@ class Gesture(QObject):
                         ring = fingUp(norm,16,14)
                         smol = fingUp(norm,20,18)
 
-                        if(middle and index and thumb and not ring and not smol and not self.befTaktActive):
-                            if(self.time-self.taktTime>=self.cooldown):
-                                self.takt.emit()
+                        if(middle and index and thumb and not ring and not smol and not self.befTaktActive and norm[8][1]<-0.15):
+                            if(self.time-self.taktTime>=self.taktcooldown and not self.enabled):
+                                self.takt.emit(True)
                                 self.taktTime = self.time
                                 self.befTaktActive = True
+                                self.enabled = True
+                            elif(self.time-self.taktTime>=self.taktcooldown and self.enabled):
+                                self.takt.emit(False)
+                                self.taktTime = self.time
+                                self.befTaktActive = True
+                                self.enabled = False
                         else:
                             self.befTaktActive = False
 
@@ -93,7 +102,7 @@ class Gesture(QObject):
                         if(direction and norm[12][0]>0.15 and not self.befNextActive):
                             if(self.time-self.nextTime>=self.cooldown):
                                 self.nextPage.emit()
-                                self.befNextActive = False
+                                self.befNextActive = True
                                 self.nextTime = self.time
                         else:
                             self.befNextActive = False
@@ -102,18 +111,20 @@ class Gesture(QObject):
                         if(index and thumb and not middle and not ring and not smol):
                             a = norm[4]
                             b = norm[8]
+                            
                             dist = math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2)
                             threshold = 0.01
 
                             pinch = dist
-                            if(pinch>self.lastpinch+threshold):
+                            if(pinch-self.lastpinch>threshold):
                                 self.zoom.emit(+1)
-                            if(pinch>self.lastpinch-threshold):
+                            if(pinch-self.lastpinch<-threshold):
                                 self.zoom.emit(-1)
                             self.lastpinch = pinch
 
                 cv2.imshow("Camera",frame)
                 if cv2.waitKey(1) & 0xFF==ord('q'):
+                    self.active==False
                     break
                 
 
@@ -133,10 +144,12 @@ class GestureMan(QObject):
     def start(self):
         self.thred.start()
         self.man.running = True
+        self.man.active = True
     
 
     def stop(self):
         self.man.running=False
+        self.man.active = False
         self.thred.quit()
         self.thred.wait()
 

@@ -127,6 +127,9 @@ class Window(QMainWindow):
 
         self.control.man.nextPage.connect(self.tonxt)
         self.control.man.prevPage.connect(self.toprev)
+        self.control.man.takt.connect(self.gestSum)
+        self.control.man.zoom.connect(self.gestZoom)
+        
     
     def opnpdf(self):
         filepath,_ = QFileDialog.getOpenFileName(self,"Select File","","PDF Files (*.pdf);; All Files(*)")
@@ -197,7 +200,7 @@ class Window(QMainWindow):
         pixmp = render.render(self.doc,self.page,self.zoom)
         self.pdf.setPixmap(pixmp)
         self.pdf.setFixedSize(pixmp.size())
-        self.toggle()
+        self.toggle2()
         
     
     def minimise(self):
@@ -207,7 +210,7 @@ class Window(QMainWindow):
         pixmp = render.render(self.doc,self.page,self.zoom)
         self.pdf.setPixmap(pixmp)
         self.pdf.setFixedSize(pixmp.size())
-        self.toggle()
+        self.toggle2()
         
 
     def pageScroll(self,value):
@@ -243,23 +246,40 @@ class Window(QMainWindow):
         base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
         return os.path.join(base_path, relative_path)
     
+    def toggle2(self):
+        QTimer.singleShot(0,self.toggle)
+
     def toggle(self):
-        if self.pdf.height()==0 or self.pdf.width()==0:
+        if not self.doc and self.pdf.isVisible():
             return
         rect=self.pdf.geometry()
         x = rect.right()
-        y = rect.top() + rect.height()//2-self.togbtn.height()//2
+        y = rect.center().y()-self.togbtn.height()//2
         self.togbtn.move(x,y)
+        self.togbtn.raise_()
 
     def resizeEvent(self,event):
         super().resizeEvent(event)
         self.toggle()
 
     def startGest(self,state):
-        if state == True:
+        if state == True or self.control.man.active==True:
             self.mode.setIcon(QIcon("assets/hand.svg"))
             self.control.start()
-        if state == False:
+        if state == False or not self.control.man.active:
             self.control.stop()
             self.mode.setIcon(QIcon("assets/mouse.svg"))
 
+    def gestSum(self,enbled:bool):
+        if enbled==True:
+            self.summary()
+        else:
+            self.close()
+
+    def gestZoom(self,state:int):
+        maxzoom = 3.0
+        minzoom = 0.03
+        if state==1 and self.zoom<=maxzoom:
+            self.enlarge()
+        if state==-1 and self.zoom>=minzoom:
+            self.minimise()
