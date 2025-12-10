@@ -9,5 +9,6 @@ window = Window()
 window.setWindowTitle("PediFile")
 window.resize(1000,750)
 window.show()
+window.checkstate()
 
 sys.exit(app.exec())

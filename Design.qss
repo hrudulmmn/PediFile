@@ -51,3 +51,14 @@ QPushButton[class="tools"]:hover{
     background-color: #4C7DDA;
     border-radius: 6px;
 }
+
+#cofee{
+    background-color: #F7D86A;
+    border-radius: 22px;
+    border-bottom: 1px solid #F7C01E
+}
+#cofee:hover{
+    background-color: #4C7DDA;
+    border-radius: 22px;
+    border-bottom: 1px solid #1F66EBFF
+}

@@ -1,6 +1,7 @@
 from PyQt6 import *
 from PyQt6.QtWidgets import *
-from PyQt6.QtCore import Qt,QTimer
+from PyQt6.QtCore import Qt,QTimer,QEvent
+import webbrowser
 from PyQt6.QtGui import QIcon
 import ctypes
 import markdown
@@ -27,20 +28,21 @@ class Window(QMainWindow):
         self.setWindowIcon(QIcon(icpath))
         
         #pdf render area
-        mainpdf = QWidget()
-        mainpdf.setObjectName("pdf")
-        lay = QHBoxLayout(mainpdf)
+        self.mainpdf = QWidget()
+        self.mainpdf.setObjectName("pdf")
+        lay = QHBoxLayout(self.mainpdf)
         self.pdf = QLabel()
         self.pdf.setVisible(False)
         self.pdf.setScaledContents(True)
         self.pdf.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.pdf.installEventFilter(self)
         lay.setContentsMargins(50,20,50,20)
         lay.addWidget(self.pdf,alignment=Qt.AlignmentFlag.AlignCenter)
 
         #scroll area for pdf renderig
         self.scrll = QScrollArea()
         self.scrll.setWidgetResizable(True)
-        self.scrll.setWidget(mainpdf)
+        self.scrll.setWidget(self.mainpdf)
         
         #summary panel
         split = QSplitter(Qt.Orientation.Horizontal)
@@ -50,7 +52,7 @@ class Window(QMainWindow):
         self.togbtn.setObjectName("Sumbtn")
         self.togbtn.setVisible(False)
         self.togbtn.clicked.connect(self.summary)
-        self.togbtn.setParent(mainpdf)
+        self.togbtn.setParent(self.mainpdf)
         self.togbtn.setFixedSize(32,48)
         
         self.sumFrame = QFrame()
@@ -94,6 +96,16 @@ class Window(QMainWindow):
         pageprev.setProperty("class","tools")
         navbar.addWidget(pageprev)
         pageprev.clicked.connect(self.toprev)
+
+        self.coffee = QPushButton()
+        self.coffee.setIcon(QIcon("assets/cof.svg"))
+        self.coffee.setObjectName("cofee")
+        self.coffee.setFixedSize(45,45)
+        self.coffee.clicked.connect(self.opnlink)
+        self.coffee.setParent(self)
+        self.coffee.move(self.width()-60,self.height()-60)
+        self.coffee.raise_()
+        self.coffee.show()
 
         pagenxt = QPushButton("")
         pagenxt.setIcon(QIcon("assets/next.svg"))
@@ -261,6 +273,14 @@ class Window(QMainWindow):
     def resizeEvent(self,event):
         super().resizeEvent(event)
         self.toggle()
+        self.coffee.move(self.width()-60,self.height()-60)
+
+    def checkstate(self):
+        if self.control.man.active==True:
+            self.mode.setIcon(QIcon("assets/hand.svg"))
+        else:
+            self.mode.setIcon(QIcon("assets/mouse.svg"))
+
 
     def startGest(self,state):
         if state == True or self.control.man.active==True:
@@ -283,3 +303,23 @@ class Window(QMainWindow):
             self.enlarge()
         if state==-1 and self.zoom>=minzoom:
             self.minimise()
+
+    def eventFilter(self,obj,event):
+        if obj is self.pdf and event.type()==QEvent.Type.Wheel:
+            if not self.doc:
+                return True
+            if event.modifiers() & Qt.KeyboardModifier.ControlModifier():
+                delta = event.angleDelta().y()
+                if delta>0:
+                    self.enlarge()
+                else:
+                    self.minimise()
+                return True
+            
+            return False
+                
+        return super().eventFilter(obj,event)
+    
+    def opnlink(self):
+        webbrowser.open("https://buymeacoffee.com/_hrudu_lmmn_")
+    
