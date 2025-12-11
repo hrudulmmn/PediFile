@@ -305,7 +305,7 @@ class Window(QMainWindow):
             self.minimise()
 
     def eventFilter(self,obj,event):
-        if obj is self.pdf and event.type()==QEvent.Type.Wheel:
+        if obj is self.mainpdf and event.type()==QEvent.Type.Wheel:
             if not self.doc:
                 return True
             if event.modifiers() & Qt.KeyboardModifier.ControlModifier():
